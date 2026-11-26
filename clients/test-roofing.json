@@ -1,0 +1,48 @@
+{
+  "client_id": "test-roofing",
+  "business_name": "Tuscaloosa Test Roofing",
+  "agent_name": "Riley",
+  "timezone": "America/Chicago",
+  "hours": {
+    "mon": ["08:00", "17:00"],
+    "tue": ["08:00", "17:00"],
+    "wed": ["08:00", "17:00"],
+    "thu": ["08:00", "17:00"],
+    "fri": ["08:00", "17:00"],
+    "sat": ["09:00", "13:00"],
+    "sun": null
+  },
+  "services": [
+    "Free roof inspections",
+    "Roof replacement",
+    "Roof repair and leaks",
+    "Storm and hail damage",
+    "Help with insurance claims",
+    "Gutters"
+  ],
+  "service_area": "Tuscaloosa, Northport, Cottondale and Coker, Alabama",
+  "faq": [
+    {"q": "Are inspections free?", "a": "Yes, the inspection is free and there is no obligation."},
+    {"q": "How long does an inspection take?", "a": "Usually about 45 minutes to an hour."},
+    {"q": "Do you work with insurance?", "a": "Yes, the team can look at storm damage and help you understand the claim process. The roofer explains the details at the inspection."},
+    {"q": "Are you licensed and insured?", "a": "The owner can confirm license and insurance details. I can have them call you."}
+  ],
+  "inspection_minutes": 60,
+  "buffer_minutes": 30,
+  "min_lead_hours": 2,
+  "days_ahead": 7,
+  "slot_step_minutes": 30,
+  "owner_name": "Rouan",
+  "owner_cell": "+1XXXXXXXXXX",
+  "owner_email": "rouan@fieldworkmedia.agency",
+  "calendar_id": "REPLACE_WITH_TEST_CALENDAR_ID@group.calendar.google.com",
+  "twilio_number": "+1XXXXXXXXXX",
+  "escalation": {
+    "transfer_on_emergency": true,
+    "transfer_on_request": true,
+    "transfer_on_upset": true,
+    "after_hours_emergency": "take_message_and_text_owner"
+  },
+  "recording_enabled": false,
+  "max_call_minutes": 10
+}

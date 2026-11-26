@@ -1,0 +1,14 @@
+# Secrets never go in git. Keys live in GitHub Actions secrets and the Pipecat Cloud secret set.
+.env
+.env.*
+!env.example
+*service-account*.json
+*-sa.json
+*.pem
+
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+samples/
+eval_results.json

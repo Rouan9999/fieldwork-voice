@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Second TwiML Bin, set as the number's "Primary handler fails" fallback.
+     Used if Twilio cannot even load connect.xml. Rings the roofer's cell. -->
+<Response>
+  <Dial timeout="25">OWNER_CELL</Dial>
+</Response>

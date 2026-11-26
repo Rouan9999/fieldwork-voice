@@ -1,0 +1,16 @@
+[project]
+name = "fieldwork-voice"
+version = "0.1.0"
+description = "Fieldwork Media AI phone assistant for roofers (Pipecat)"
+requires-python = ">=3.11"
+dependencies = [
+    "pipecat-ai[websocket,deepgram,anthropic,fish,silero,runner]==1.17.0",
+    "pipecatcloud>=1.2.0",
+    "google-api-python-client>=2.150",
+    "google-auth>=2.35",
+    "aiohttp>=3.10",
+    "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24"]

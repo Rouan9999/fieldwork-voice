@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- TwiML Bin for the client's Twilio number ("A call comes in").
+     If the agent's WebSocket fails or closes without hanging up, Twilio runs the
+     <Dial> after </Connect>, so the call rings the roofer's cell instead of dying.
+     Replace AGENT_NAME.ORG_NAME and OWNER_CELL. -->
+<Response>
+  <Connect>
+    <Stream url="wss://api.pipecat.daily.co/ws/twilio">
+      <Parameter name="_pipecatCloudServiceHost" value="AGENT_NAME.ORG_NAME"/>
+      <Parameter name="from" value="{{From}}"/>
+    </Stream>
+  </Connect>
+  <Dial timeout="25">OWNER_CELL</Dial>
+</Response>

@@ -1,0 +1,8 @@
+# One agent + one secret set per client. Rename both for each client.
+agent_name = "fw-test-roofing"
+image = "YOUR_DOCKERHUB_USER/fw-voice:0.1"
+secret_set = "fw-test"
+agent_profile = "agent-1x"
+
+[scaling]
+	min_agents = 0   # 0 = pay only for active minutes; first call may cold-start (measure it)
