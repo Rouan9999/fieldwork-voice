@@ -68,7 +68,7 @@ jobs:
         env:
           CLIENT_CONFIG: clients/capstone-demo.json
         run: |
-          sudo apt-get install -y -qq ffmpeg >/dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
           uv run python scripts/voice_batch.py
         continue-on-error: true
       - uses: actions/upload-artifact@v4
