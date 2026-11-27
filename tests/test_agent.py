@@ -227,3 +227,13 @@ def test_google_busy_merges_roofer_and_bookings_calendars():
     g._svc, g.calendar_id, g.bookings_id = Svc(), "roofer@x.com", "bot@sa.com"
     busy = run(g.busy(NOW, NOW + timedelta(days=3)))
     assert len(busy) == 2
+
+
+def test_humanizer_skips_readbacks_and_greeting():
+    from agent.humanize import Humanizer, strip_cues
+    h = Humanizer(every=1, seed=1)
+    assert h.add_fillers("Thanks for calling.", first_line=True) == "Thanks for calling."
+    assert h.add_fillers("You're booked Monday at 1 PM at 12 Main St.") .startswith("You're")
+    out = h.add_fillers("What's the address?")
+    assert out != "What's the address?"
+    assert strip_cues("Let me see [short pause] okay") == "Let me see okay"

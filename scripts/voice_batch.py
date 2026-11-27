@@ -32,16 +32,20 @@ import eval_calls  # noqa: E402  (same folder)
 
 SR = 16000
 LAURA = "e3cd384158934cc9a01029cd7d278634"
-CUES = re.compile(r"\[[^\]]{1,40}\]\s*")
+CATHERINE = "7fe8fcea5c3d4fbb9d153493a1e8be0e"  # "Kthy" community voice (rights unclear: test only)
 
-# name -> (provider, model/voice, keeps [cues]?, $ per 1M chars)  prices: see doc 35
+from agent.humanize import Humanizer, direct, strip_cues  # noqa: E402
+
+# name -> provider, model, voice, fish direction prefix?, $ per 1M bytes (list price; measured below for Fish)
 VOICES = {
-    "fish_s21_free_laura": ("fish", "s2.1-pro-free", True, 0.0),
-    "fish_s21_pro_laura": ("fish", "s2.1-pro", True, 15.0),
-    "fish_drama3_laura": ("fish", "drama-3", True, 50.0),
-    "deepgram_aura2_thalia": ("deepgram", "aura-2-thalia-en", False, 30.0),
+    "drama3_catherine_calm": ("fish", "drama-3", CATHERINE, True, 10.0),
+    "drama3_catherine_nodirection": ("fish", "drama-3", CATHERINE, False, 10.0),
+    "drama3_laura_calm": ("fish", "drama-3", LAURA, True, 10.0),
+    "s21free_catherine_calm": ("fish", "s2.1-pro-free", CATHERINE, True, 0.0),
+    "deepgram_arcas_male": ("deepgram", "aura-2-arcas-en", None, False, 30.0),
 }
 CALLER_VOICE = "aura-2-arcas-en"
+CALLER_VOICE_IF_AGENT_IS_ARCAS = "aura-2-apollo-en"
 
 PERSONA = dict(
     persona=("You are Mike, a homeowner in Hoover, Alabama. Last night's hail storm hit your house and you saw "
@@ -54,8 +58,14 @@ PERSONA = dict(
 )
 
 
-async def fish(session, model, text):
-    body = {"text": text, "reference_id": LAURA, "format": "pcm", "sample_rate": SR,
+async def fish_credit(session):
+    h = {"Authorization": f"Bearer {os.environ['FISH_API_KEY']}"}
+    async with session.get("https://api.fish.audio/wallet/self/api-credit", headers=h) as r:
+        return float((await r.json(content_type=None)).get("credit", 0)) if r.status == 200 else None
+
+
+async def fish(session, model, text, voice=LAURA):
+    body = {"text": text, "reference_id": voice, "format": "pcm", "sample_rate": SR,
             "latency": "balanced", "prosody": {"speed": float(os.getenv("FISH_SPEED", "0.95"))}}
     h = {"Authorization": f"Bearer {os.environ['FISH_API_KEY']}", "model": model}
     return await _stream(session, "https://api.fish.audio/v1/tts", h, body)
@@ -103,35 +113,54 @@ async def main():
     for who, line in dialog:
         print(f"  {who.upper():6s} {line}")
 
+    # Same filler placement for every voice, so only the voice differs.
+    hz = Humanizer(every=3, seed=7)
+    human = [(w, hz.add_fillers(t, first_line=(i == 0)) if w == "agent" else t) for i, (w, t) in enumerate(dialog)]
+    Path("samples/dialog_humanized.json").write_text(json.dumps(human, indent=2))
+    for who, line in human:
+        if who == "agent":
+            print(f"  HUMANIZED {line}")
+
     only = [v for v in os.getenv("VOICES", "").split(",") if v]
     rows = []
     async with aiohttp.ClientSession() as s:
-        caller_audio = {}
-        for i, (who, line) in enumerate(dialog):
-            if who == "caller":
-                caller_audio[i] = (await deepgram(s, CALLER_VOICE, line))[1]
-        for name, (prov, model, keeps_cues, price) in VOICES.items():
+        caller_cache = {}
+
+        async def caller(i, line, voice):
+            if (i, voice) not in caller_cache:
+                caller_cache[(i, voice)] = (await deepgram(s, voice, line))[1]
+            return caller_cache[(i, voice)]
+
+        for name, (prov, model, voice, use_dir, price) in VOICES.items():
             if only and name not in only:
                 continue
-            pcm, firsts, chars = bytearray(), [], 0
+            cvoice = CALLER_VOICE_IF_AGENT_IS_ARCAS if model == "aura-2-arcas-en" else CALLER_VOICE
+            pcm, firsts, nbytes = bytearray(), [], 0
+            before = await fish_credit(s) if prov == "fish" else None
             try:
-                for i, (who, line) in enumerate(dialog):
+                for i, (who, line) in enumerate(human):
                     if who == "caller":
-                        pcm += caller_audio[i] + gap(350)
+                        pcm += await caller(i, line, cvoice) + gap(350)
                         continue
-                    text = line if keeps_cues else CUES.sub("", line)
-                    chars += len(text.encode())
-                    f, a = await (fish(s, model, text) if prov == "fish" else deepgram(s, model, text))
+                    if prov == "fish":
+                        text = direct(line) if use_dir else line
+                        f, a = await fish(s, model, text, voice)
+                    else:
+                        text = strip_cues(line)
+                        f, a = await deepgram(s, model, text)
+                    nbytes += len(text.encode())
                     firsts.append(f)
                     pcm += a + gap(450)
             except Exception as e:
                 rows.append((name, f"SKIPPED: {e}"))
                 print(f"{name}: SKIPPED {e}")
                 continue
+            after = await fish_credit(s) if prov == "fish" else None
             to_mp3(bytes(pcm), out / f"call_{name}.mp3")
-            cost = chars * price / 1_000_000
+            spent = (before - after) if (before is not None and after is not None) else None
+            measured = f", Fish credit used ${spent:.4f} (= ${spent / nbytes * 1e6:.2f} per 1M bytes)" if spent else ""
             rows.append((name, f"first-audio p50 {statistics.median(firsts):.2f}s max {max(firsts):.2f}s, "
-                               f"{chars} chars, voice cost this call ${cost:.4f}"))
+                               f"{nbytes} bytes, list cost ${nbytes * price / 1e6:.4f}{measured}"))
             print(f"{name}: {rows[-1][1]}")
     Path("samples/results.txt").write_text("\n".join(f"{n}: {r}" for n, r in rows))
 
