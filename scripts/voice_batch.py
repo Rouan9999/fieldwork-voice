@@ -38,21 +38,26 @@ from agent.humanize import DIRECTION_SLOW, Humanizer, add_pauses, direct, strip_
 
 # name -> provider, model, voice, fish direction prefix?, $ per 1M bytes (list price; measured below for Fish)
 # name -> provider, model, voice, direction, speed, pause cues?, $ per 1M bytes (list)
+# Fish community voices: uploader-owned, rights unclear -> testing only.
 VOICES = {
-    "drama3_catherine_slow090": ("fish", "drama-3", CATHERINE, "slow", 0.90, False, 10.0),
-    "drama3_catherine_slow085_pauses": ("fish", "drama-3", CATHERINE, "slow", 0.85, True, 10.0),
-    "free_catherine_slow090_pauses": ("fish", "s2.1-pro-free", CATHERINE, "slow", 0.90, True, 0.0),
+    "drama3_catherine_095": ("fish", "drama-3", CATHERINE, "slow", 0.95, True, 10.0),
+    "drama3_midage_dry_095": ("fish", "drama-3", "74f60baf6e034967a2cf5c7c1f3d4a46", "slow", 0.95, True, 10.0),
+    "drama3_midwest_30s_095": ("fish", "drama-3", "7e4ff9c6e1334e13b30fd6afeb6c37ef", "slow", 0.95, True, 10.0),
+    "drama3_receptionist_095": ("fish", "drama-3", "31510937b9264db18c782953e75ef660", "slow", 0.95, True, 10.0),
+    "deepgram_vesta": ("deepgram", "aura-2-vesta-en", None, None, None, False, 30.0),
+    "deepgram_helena": ("deepgram", "aura-2-helena-en", None, None, None, False, 30.0),
+    "deepgram_andromeda": ("deepgram", "aura-2-andromeda-en", None, None, None, False, 30.0),
 }
 CALLER_VOICE = "aura-2-arcas-en"
 CALLER_VOICE_IF_AGENT_IS_ARCAS = "aura-2-apollo-en"
 
 PERSONA = dict(
-    persona=("You are Mike, a homeowner in Hoover, Alabama. Last night's hail storm hit your house and you saw "
-             "granules in the gutters. You think you might file an insurance claim but you're not sure. You're a bit "
-             "unsure how this works and ask one natural question about whether it costs anything. Prefer an afternoon. "
-             "Address: 2214 Lorna Ridge Lane, Hoover. Callback: the number you're calling from. Talk casually, "
-             "like a real person on the phone. Confirm when the details are read back correctly."),
-    opener="Hey, uh, yeah, we had that hail come through last night and I think it might've messed up my roof.",
+    persona=("You are Mike, a homeowner in Hoover, Alabama, calling on a lunch break, so you keep it quick and "
+             "casual. Hail hit last night; you want someone to look at the roof. Not filing a claim yet. When asked, "
+             "give name Mike Turner, the number you're calling from, and address 2214 Lorna Ridge Lane, Hoover, all at "
+             "once if you can. Take the first afternoon time offered. Confirm the read-back with a quick 'yep'. "
+             "Keep every reply under 15 words."),
+    opener="Hey, uh, we had that hail last night, I need somebody to look at my roof.",
     expect=dict(booked=True),
 )
 
@@ -151,10 +156,14 @@ async def main():
                     think = rng.randint(650, 1050) + (rng.randint(900, 1400) if after_lookup else 0)
                     after_lookup = False
                     pcm += gap(think)
-                    text = add_pauses(line, rng) if pauses else line
-                    if direction == "slow":
-                        text = direct(text, DIRECTION_SLOW)
-                    f, a = await fish(s, model, text, voice, speed)
+                    if prov == "fish":
+                        text = add_pauses(line, rng) if pauses else line
+                        if direction == "slow":
+                            text = direct(text, DIRECTION_SLOW)
+                        f, a = await fish(s, model, text, voice, speed)
+                    else:
+                        text = strip_cues(line)
+                        f, a = await deepgram(s, model, text)
                     nbytes += len(text.encode())
                     firsts.append(f)
                     pcm += a + gap(rng.randint(300, 500))
