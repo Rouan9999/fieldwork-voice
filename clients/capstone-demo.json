@@ -1,0 +1,45 @@
+{
+  "client_id": "capstone-demo",
+  "business_name": "Capstone Roofing",
+  "timezone": "America/Chicago",
+  "hours": {
+    "mon": ["08:00", "17:00"],
+    "tue": ["08:00", "17:00"],
+    "wed": ["08:00", "17:00"],
+    "thu": ["08:00", "17:00"],
+    "fri": ["08:00", "17:00"],
+    "sat": ["09:00", "13:00"],
+    "sun": null
+  },
+  "services": [
+    "Free roof inspections and estimates",
+    "Roof replacement: asphalt shingle, metal, slate, wood shake, flat roofs",
+    "Roof repair and leaks",
+    "Storm and hail damage",
+    "Help with insurance claims",
+    "Gutters and siding",
+    "Residential and commercial"
+  ],
+  "service_area": "Birmingham and nearby: Hoover, Homewood, Mountain Brook, Vestavia Hills, Trussville, Pelham, Alabaster, Bessemer, Gardendale, Tuscaloosa",
+  "faq": [
+    {"q": "Are inspections free?", "a": "Yes, the inspection and estimate are free, no obligation."},
+    {"q": "Do you help with insurance?", "a": "Yes, the team can look at storm damage and walk you through the claim process at the inspection."},
+    {"q": "Do you offer financing?", "a": "Financing options exist; the team goes over details at the inspection."},
+    {"q": "How long have you been in business?", "a": "Serving Birmingham since 2013, family owned."}
+  ],
+  "inspection_minutes": 60,
+  "buffer_minutes": 30,
+  "min_lead_hours": 2,
+  "days_ahead": 7,
+  "slot_step_minutes": 30,
+  "owner_name": "the owner",
+  "owner_cell": "+1XXXXXXXXXX",
+  "owner_email": "",
+  "calendar_id": "REPLACE",
+  "twilio_number": "+1XXXXXXXXXX",
+  "escalation": {"transfer_on_emergency": true, "transfer_on_request": true, "transfer_on_upset": true},
+  "recording_enabled": false,
+  "ai_disclosure": "on_ask",
+  "max_call_minutes": 10,
+  "_note": "DEMO ONLY for the Tony pitch. Facts from public pages (doc 25); hours are a placeholder. Not live, not approved by Capstone."
+}

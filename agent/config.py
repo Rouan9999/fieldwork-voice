@@ -33,6 +33,7 @@ class ClientConfig:
     twilio_number: str = ""
     escalation: dict = field(default_factory=dict)
     recording_enabled: bool = False
+    ai_disclosure: str = "greeting"  # "greeting" = say it up front; "on_ask" = only when asked (never deny)
     max_call_minutes: int = 10
 
     @property
@@ -47,6 +48,8 @@ class ClientConfig:
             v = self.hours[d]
             if v is not None and (len(v) != 2 or v[0] >= v[1]):
                 raise ValueError(f"bad hours for {d}: {v}")
+        if self.ai_disclosure not in ("greeting", "on_ask"):
+            raise ValueError("ai_disclosure must be 'greeting' or 'on_ask'")
         if self.inspection_minutes <= 0:
             raise ValueError("inspection_minutes must be > 0")
 
@@ -54,7 +57,7 @@ class ClientConfig:
 def load_config(path: str | None = None) -> ClientConfig:
     path = path or os.getenv("CLIENT_CONFIG", "clients/test-roofing.json")
     data = json.loads(Path(path).read_text())
-    cfg = ClientConfig(**data)
+    cfg = ClientConfig(**{k: v for k, v in data.items() if not k.startswith('_')})
     # Phone numbers can be overridden from the secret store so they stay out of git.
     cfg.owner_cell = os.getenv("OWNER_CELL", cfg.owner_cell)
     cfg.twilio_number = os.getenv("TWILIO_NUMBER", cfg.twilio_number)

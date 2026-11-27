@@ -4,12 +4,30 @@
   "agent_name": "Riley",
   "timezone": "America/Chicago",
   "hours": {
-    "mon": ["08:00", "17:00"],
-    "tue": ["08:00", "17:00"],
-    "wed": ["08:00", "17:00"],
-    "thu": ["08:00", "17:00"],
-    "fri": ["08:00", "17:00"],
-    "sat": ["09:00", "13:00"],
+    "mon": [
+      "08:00",
+      "17:00"
+    ],
+    "tue": [
+      "08:00",
+      "17:00"
+    ],
+    "wed": [
+      "08:00",
+      "17:00"
+    ],
+    "thu": [
+      "08:00",
+      "17:00"
+    ],
+    "fri": [
+      "08:00",
+      "17:00"
+    ],
+    "sat": [
+      "09:00",
+      "13:00"
+    ],
     "sun": null
   },
   "services": [
@@ -22,10 +40,22 @@
   ],
   "service_area": "Tuscaloosa, Northport, Cottondale and Coker, Alabama",
   "faq": [
-    {"q": "Are inspections free?", "a": "Yes, the inspection is free and there is no obligation."},
-    {"q": "How long does an inspection take?", "a": "Usually about 45 minutes to an hour."},
-    {"q": "Do you work with insurance?", "a": "Yes, the team can look at storm damage and help you understand the claim process. The roofer explains the details at the inspection."},
-    {"q": "Are you licensed and insured?", "a": "The owner can confirm license and insurance details. I can have them call you."}
+    {
+      "q": "Are inspections free?",
+      "a": "Yes, the inspection is free and there is no obligation."
+    },
+    {
+      "q": "How long does an inspection take?",
+      "a": "Usually about 45 minutes to an hour."
+    },
+    {
+      "q": "Do you work with insurance?",
+      "a": "Yes, the team can look at storm damage and help you understand the claim process. The roofer explains the details at the inspection."
+    },
+    {
+      "q": "Are you licensed and insured?",
+      "a": "The owner can confirm license and insurance details. I can have them call you."
+    }
   ],
   "inspection_minutes": 60,
   "buffer_minutes": 30,
@@ -44,5 +74,6 @@
     "after_hours_emergency": "take_message_and_text_owner"
   },
   "recording_enabled": false,
-  "max_call_minutes": 10
+  "max_call_minutes": 10,
+  "ai_disclosure": "on_ask"
 }

@@ -8,6 +8,10 @@ on:
         description: "Also run live checks with secrets (keys, 20 scripted calls, Fish voice test). Costs cents."
         type: boolean
         default: false
+      voices:
+        description: "Run the voice batch (simulated Capstone call rendered in each voice)"
+        type: boolean
+        default: false
       share_bookings:
         description: "Share the agent's bookings calendar with OWNER_EMAIL (repo variable)"
         type: boolean
@@ -26,7 +30,7 @@ jobs:
       - run: uv run --with pytest pytest -q
 
   live:
-    if: github.event_name == 'workflow_dispatch' && (inputs.live || inputs.share_bookings)
+    if: github.event_name == 'workflow_dispatch' && (inputs.live || inputs.share_bookings || inputs.voices)
     needs: unit
     runs-on: ubuntu-latest
     env:
@@ -58,6 +62,14 @@ jobs:
         env:
           FISH_MODELS: s2.1-pro-free
         run: uv run python scripts/tts_latency.py 2
+        continue-on-error: true
+      - name: Voice batch (Capstone demo call)
+        if: inputs.voices
+        env:
+          CLIENT_CONFIG: clients/capstone-demo.json
+        run: |
+          sudo apt-get install -y -qq ffmpeg >/dev/null
+          uv run python scripts/voice_batch.py
         continue-on-error: true
       - uses: actions/upload-artifact@v4
         if: always()

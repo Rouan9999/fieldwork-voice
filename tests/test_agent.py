@@ -178,8 +178,11 @@ def test_calendar_down_returns_message_path():
 
 def test_prompt_has_disclosure_rules_and_dates():
     p = system_prompt(CFG, NOW, "+12055550100")
-    assert "2026-11-26" in p and "Never quote prices" in p and "automated assistant" in p
-    assert "automated assistant" in greeting(CFG)
+    assert "2026-11-26" in p and "Never quote prices" in p and "AI assistant" in p
+    assert "Never claim or imply you are human" in p and "Privacy" in p
+    assert CFG.business_name in greeting(CFG) and "automated" not in greeting(CFG)  # on_ask
+    from dataclasses import replace
+    assert "automated assistant" in greeting(replace(CFG, ai_disclosure="greeting"))
     assert is_open(CFG, NOW)
     assert not is_open(CFG, datetime(2026, 11, 29, 10, 0, tzinfo=CT))  # Sunday
 
