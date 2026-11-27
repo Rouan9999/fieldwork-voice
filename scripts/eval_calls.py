@@ -52,14 +52,12 @@ class FakeTw:
 
 # Each scenario: caller lines (sent one per turn) + checks on the end state.
 S = {
-    "book_basic": dict(turns=[
-        "Hi, I think I need someone to look at my roof, a few shingles blew off.",
-        "The first one works.",
-        "John Carter. This number is fine.",
-        "4120 Oak Street, Tuscaloosa.",
-        "No insurance claim, just want it checked.",
-        "Yes, that's all correct.",
-    ], expect=dict(booked=True, texted=True)),
+    "book_basic": dict(persona=(
+        "You are John Carter, a homeowner. Wind blew a few shingles off your roof. You want a free inspection. "
+        "Your address is 4120 Oak Street, Tuscaloosa. Your callback number is the number you are calling from. "
+        "You are NOT filing an insurance claim. Pick the first time offered. Confirm when details are read back correctly."),
+        opener="Hi, I think I need someone to look at my roof, a few shingles blew off.",
+        expect=dict(booked=True, texted=True)),
     "ai_question": dict(turns=["Wait, am I talking to a real person or a robot?"],
                         expect=dict(says=r"automat|AI|virtual|assistant")),
     "wants_human": dict(turns=["I don't want a machine. Let me talk to a real person please."],
@@ -95,10 +93,11 @@ S = {
         "Water is pouring through my ceiling right now from the storm! What do I do?",
         "Lisa Green, 205-555-0100, 77 Pine Ave, Cottondale."],
         expect=dict(message_urgent=True, transferred_or_message=True)),
-    "storm_insurance": dict(turns=[
-        "We had hail last night and my neighbor said I should get the roof checked for an insurance claim.",
-        "The second option please.", "Tom Hill, this number.", "990 Elm Street, Coker.",
-        "Yes I'm filing a claim.", "Yes, correct."],
+    "storm_insurance": dict(persona=(
+        "You are Tom Hill. Hail hit last night and you ARE filing an insurance claim. You want an afternoon inspection. "
+        "Address: 990 Elm Street, Coker. Callback: the number you are calling from. Pick the second time offered. "
+        "Confirm when details are read back correctly."),
+        opener="We had hail last night and my neighbor said I should get the roof checked for an insurance claim.",
         expect=dict(booked=True, insurance=True)),
     "existing_job": dict(turns=["Hi, you guys replaced my roof last month and I have a question about the warranty.",
                                 "Karen Smith, 205-555-0100."],
@@ -106,10 +105,10 @@ S = {
     "out_of_area": dict(turns=["Can you come inspect a roof in Mobile, Alabama?",
                                "Ok, Sam Reed, 205-555-0100."],
                         expect=dict(booked=False)),
-    "double_book": dict(prebook=True, turns=[
-        "I need a roof inspection.", "Option A please.", "Pat Lee, this number.",
-        "12 Main Street, Tuscaloosa.", "No claim.", "Yes correct."],
-        expect=dict(no_double=True)),
+    "double_book": dict(prebook=True, persona=(
+        "You are Pat Lee. You want a roof inspection at 12 Main Street, Tuscaloosa, no insurance claim, callback is "
+        "the number you are calling from. Always pick the first time offered. Confirm read-backs."),
+        opener="I need a roof inspection.", expect=dict(no_double=True)),
 }
 
 
@@ -144,7 +143,35 @@ async def run_call(name: str, sc: dict) -> dict:
     usage = {"in": 0, "out": 0, "cache_read": 0, "cache_write": 0}
     lat = []
     ended = False
-    for line in sc["turns"]:
+    async def caller_lines():
+        if "turns" in sc:
+            for ln in sc["turns"]:
+                yield ln
+            return
+        yield sc["opener"]
+        for _ in range(10):  # simulated caller (Haiku) answers what the bot just asked
+            if st.booking or ended:
+                return
+            lines = []
+            for m in msgs:
+                c = m["content"]
+                if m["role"] == "user" and isinstance(c, str):
+                    lines.append(f"You: {c}")
+                elif m["role"] == "assistant":
+                    txt = c if isinstance(c, str) else " ".join(b.get("text", "") for b in c if b.get("type") == "text")
+                    if txt.strip():
+                        lines.append(f"Agent: {txt}")
+            convo = "\n".join(lines)
+            r = await client.messages.create(
+                model=MODEL, max_tokens=80, output_config={"effort": "low"},
+                system="You are a caller on the phone with a roofing company's assistant. Stay in character. "
+                       "Reply with ONE short spoken line answering only what was just asked. Persona: " + sc["persona"],
+                messages=[{"role": "user", "content": convo}])
+            usage["in"] += r.usage.input_tokens
+            usage["out"] += r.usage.output_tokens
+            yield r.content[0].text.strip()
+
+    async for line in caller_lines():
         if ended:
             break
         msgs.append({"role": "user", "content": line})
@@ -220,7 +247,7 @@ async def run_call(name: str, sc: dict) -> dict:
     if e.get("no_double"):
         chk(len(cal.events) <= 1 and not any(
             (ev["start"], ev["end"]) in cal._busy for ev in cal.events), "double booked")
-    return {"name": name, "pass": not fails, "fails": fails, "turns": len(sc["turns"]),
+    return {"name": name, "pass": not fails, "fails": fails, "turns": len(sc.get("turns", [])) or None,
             "llm_calls": len(lat), "llm_latency_avg_s": round(sum(lat) / len(lat), 3) if lat else None,
             "llm_latency_max_s": round(max(lat), 3) if lat else None,
             "usage": usage, "llm_cost_usd": round(cost, 5),
