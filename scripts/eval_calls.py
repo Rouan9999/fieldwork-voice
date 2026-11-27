@@ -218,6 +218,7 @@ async def run_call(name: str, sc: dict) -> dict:
                     except TypeError as e:
                         res = {"ok": False, "error": f"bad arguments: {e}"}
                 results.append({"type": "tool_result", "tool_use_id": c.id, "content": json.dumps(res)})
+                dialog.append(("tool", c.name))
             msgs.append({"role": "user", "content": results})
     # cost (cache write priced at input rate as an upper-ish guess)
     cost = (usage["in"] * RATES["haiku_in_tok"] + usage["out"] * RATES["haiku_out_tok"]

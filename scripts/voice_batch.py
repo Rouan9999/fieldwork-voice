@@ -34,15 +34,14 @@ SR = 16000
 LAURA = "e3cd384158934cc9a01029cd7d278634"
 CATHERINE = "7fe8fcea5c3d4fbb9d153493a1e8be0e"  # "Kthy" community voice (rights unclear: test only)
 
-from agent.humanize import Humanizer, direct, strip_cues  # noqa: E402
+from agent.humanize import DIRECTION_SLOW, Humanizer, add_pauses, direct, strip_cues  # noqa: E402
 
 # name -> provider, model, voice, fish direction prefix?, $ per 1M bytes (list price; measured below for Fish)
+# name -> provider, model, voice, direction, speed, pause cues?, $ per 1M bytes (list)
 VOICES = {
-    "drama3_catherine_calm": ("fish", "drama-3", CATHERINE, True, 10.0),
-    "drama3_catherine_nodirection": ("fish", "drama-3", CATHERINE, False, 10.0),
-    "drama3_laura_calm": ("fish", "drama-3", LAURA, True, 10.0),
-    "s21free_catherine_calm": ("fish", "s2.1-pro-free", CATHERINE, True, 0.0),
-    "deepgram_arcas_male": ("deepgram", "aura-2-arcas-en", None, False, 30.0),
+    "drama3_catherine_slow090": ("fish", "drama-3", CATHERINE, "slow", 0.90, False, 10.0),
+    "drama3_catherine_slow085_pauses": ("fish", "drama-3", CATHERINE, "slow", 0.85, True, 10.0),
+    "free_catherine_slow090_pauses": ("fish", "s2.1-pro-free", CATHERINE, "slow", 0.90, True, 0.0),
 }
 CALLER_VOICE = "aura-2-arcas-en"
 CALLER_VOICE_IF_AGENT_IS_ARCAS = "aura-2-apollo-en"
@@ -64,9 +63,9 @@ async def fish_credit(session):
         return float((await r.json(content_type=None)).get("credit", 0)) if r.status == 200 else None
 
 
-async def fish(session, model, text, voice=LAURA):
+async def fish(session, model, text, voice=LAURA, speed=0.95):
     body = {"text": text, "reference_id": voice, "format": "pcm", "sample_rate": SR,
-            "latency": "balanced", "prosody": {"speed": float(os.getenv("FISH_SPEED", "0.95"))}}
+            "latency": "balanced", "prosody": {"speed": speed}}
     h = {"Authorization": f"Bearer {os.environ['FISH_API_KEY']}", "model": model}
     return await _stream(session, "https://api.fish.audio/v1/tts", h, body)
 
@@ -114,8 +113,9 @@ async def main():
         print(f"  {who.upper():6s} {line}")
 
     # Same filler placement for every voice, so only the voice differs.
-    hz = Humanizer(every=3, seed=7)
+    hz = Humanizer(every=2, seed=7)
     human = [(w, hz.add_fillers(t, first_line=(i == 0)) if w == "agent" else t) for i, (w, t) in enumerate(dialog)]
+    import random as _r
     Path("samples/dialog_humanized.json").write_text(json.dumps(human, indent=2))
     for who, line in human:
         if who == "agent":
@@ -131,26 +131,33 @@ async def main():
                 caller_cache[(i, voice)] = (await deepgram(s, voice, line))[1]
             return caller_cache[(i, voice)]
 
-        for name, (prov, model, voice, use_dir, price) in VOICES.items():
+        for name, (prov, model, voice, direction, speed, pauses, price) in VOICES.items():
             if only and name not in only:
                 continue
-            cvoice = CALLER_VOICE_IF_AGENT_IS_ARCAS if model == "aura-2-arcas-en" else CALLER_VOICE
+            cvoice = CALLER_VOICE
             pcm, firsts, nbytes = bytearray(), [], 0
             before = await fish_credit(s) if prov == "fish" else None
             try:
+                rng = _r.Random(11)
+                after_lookup = False
                 for i, (who, line) in enumerate(human):
-                    if who == "caller":
-                        pcm += await caller(i, line, cvoice) + gap(350)
+                    if who == "tool":
+                        after_lookup = after_lookup or line == "check_slots"
                         continue
-                    if prov == "fish":
-                        text = direct(line) if use_dir else line
-                        f, a = await fish(s, model, text, voice)
-                    else:
-                        text = strip_cues(line)
-                        f, a = await deepgram(s, model, text)
+                    if who == "caller":
+                        pcm += await caller(i, line, cvoice)
+                        continue
+                    # Real people take a beat before answering, longer after "checking the calendar".
+                    think = rng.randint(650, 1050) + (rng.randint(900, 1400) if after_lookup else 0)
+                    after_lookup = False
+                    pcm += gap(think)
+                    text = add_pauses(line, rng) if pauses else line
+                    if direction == "slow":
+                        text = direct(text, DIRECTION_SLOW)
+                    f, a = await fish(s, model, text, voice, speed)
                     nbytes += len(text.encode())
                     firsts.append(f)
-                    pcm += a + gap(450)
+                    pcm += a + gap(rng.randint(300, 500))
             except Exception as e:
                 rows.append((name, f"SKIPPED: {e}"))
                 print(f"{name}: SKIPPED {e}")
