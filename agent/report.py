@@ -69,6 +69,12 @@ def owner_summary(business: str, caller: str, state, transcript_url: str = "") -
             f"BOOKED: {b['time']}. {b['name']}, {b['phone']}, {b['address']}. "
             f"Issue: {b['issue']}. Insurance claim: {'yes' if b['insurance_claim'] else 'no'}."
         )
+        from datetime import datetime
+
+        from .tools import calendar_link
+        lines.append("Block it on your calendar: " + calendar_link(
+            f"Roof inspection - {b['name']}", datetime.fromisoformat(b["start"]),
+            datetime.fromisoformat(b["end"]), f"{b['phone']} - {b['issue']}", b["address"]))
     for m in state.messages:
         tag = m.get("urgency", "normal").upper()
         lines.append(f"{tag} MESSAGE: {m.get('name') or 'no name'}, {m.get('phone') or ''}: {m.get('reason')}")

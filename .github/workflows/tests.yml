@@ -8,6 +8,10 @@ on:
         description: "Also run live checks with secrets (keys, 20 scripted calls, Fish voice test). Costs cents."
         type: boolean
         default: false
+      share_bookings:
+        description: "Share the agent's bookings calendar with OWNER_EMAIL (repo variable)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -22,7 +26,7 @@ jobs:
       - run: uv run --with pytest pytest -q
 
   live:
-    if: github.event_name == 'workflow_dispatch' && inputs.live
+    if: github.event_name == 'workflow_dispatch' && (inputs.live || inputs.share_bookings)
     needs: unit
     runs-on: ubuntu-latest
     env:
@@ -33,17 +37,24 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       GOOGLE_SA_JSON: ${{ secrets.GOOGLE_SA_JSON }}
       CALENDAR_ID: ${{ vars.CALENDAR_ID }}
+      OWNER_EMAIL: ${{ vars.OWNER_EMAIL }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --locked
+      - name: Share bookings calendar with the owner
+        if: inputs.share_bookings
+        run: uv run python scripts/share_bookings_calendar.py
+        continue-on-error: true
       - name: Check keys (prints OK/FAIL only, never the keys)
         run: uv run --with requests python scripts/check_keys.py
         continue-on-error: true
       - name: 20 scripted calls vs Claude Haiku 5.5
+        if: inputs.live
         run: uv run python scripts/eval_calls.py
         continue-on-error: true
       - name: Fish voice latency (s2.1-pro only on free tier)
+        if: inputs.live
         env:
           FISH_MODELS: s2.1-pro
         run: uv run python scripts/tts_latency.py 2

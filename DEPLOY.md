@@ -20,8 +20,12 @@ If the agent dies, the TwiML falls through to `<Dial>` = roofer's cell.
 ## Per client (target: under 2 hours of work, live in 2 days)
 1. Copy `clients/test-roofing.json` to `clients/<client>.json`, fill in name,
    hours, services, area, FAQ, inspection length. No phone numbers or ids in the file.
-2. Client shares one Google Calendar with the service account email,
-   permission "Make changes to events". Copy its Calendar ID.
+2. Client shares their Google Calendar with the service account email as
+   "See only free/busy" (works even when Workspace blocks more). Copy its
+   Calendar ID. The agent books on its OWN calendar (the service account's),
+   reads both as busy (no double booking), and texts the roofer each booking
+   with an "add to calendar" link. Optional: run the workflow with
+   share_bookings so the roofer sees all bookings inside his Google Calendar.
 3. Twilio: create a subaccount for the client, buy a local number in it.
 4. Pipecat Cloud secret set `fw-<client>` with:
    TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN (the subaccount's), DEEPGRAM_API_KEY,

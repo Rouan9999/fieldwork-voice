@@ -188,3 +188,39 @@ def test_cost_math():
     m = CallMetrics(duration_s=150, prompt_tokens=30000, completion_tokens=600, tts_bytes=900)
     c = m.cost()
     assert 0 < c["total"] < 0.2
+
+
+def test_owner_summary_has_calendar_block_link():
+    t, _, st = make(NOW)
+    run(t.check_slots())
+    run(t.book("A", "Jane", "2055550100", "1 Main St, Tuscaloosa", "leak", True, True))
+    s = owner_summary(CFG.business_name, "+12055550100", st)
+    assert "BOOKED" in s and "calendar.google.com/calendar/render" in s
+
+
+def test_google_busy_merges_roofer_and_bookings_calendars():
+    from agent.calendar_backend import GoogleCalendar
+
+    class Q:
+        def __init__(self, body):
+            self.body = body
+
+        def execute(self):
+            return {"calendars": {
+                "roofer@x.com": {"busy": [{"start": "2026-11-26T16:00:00Z", "end": "2026-11-26T17:00:00Z"}]},
+                "bot@sa.com": {"busy": [{"start": "2026-11-27T15:00:00Z", "end": "2026-11-27T16:00:00Z"}]},
+            }}
+
+    class FB:
+        def query(self, body):
+            assert {i["id"] for i in body["items"]} == {"roofer@x.com", "bot@sa.com"}
+            return Q(body)
+
+    class Svc:
+        def freebusy(self):
+            return FB()
+
+    g = GoogleCalendar.__new__(GoogleCalendar)
+    g._svc, g.calendar_id, g.bookings_id = Svc(), "roofer@x.com", "bot@sa.com"
+    busy = run(g.busy(NOW, NOW + timedelta(days=3)))
+    assert len(busy) == 2

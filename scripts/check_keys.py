@@ -62,18 +62,19 @@ def google():
     from googleapiclient.discovery import build
     info = json.loads(os.environ["GOOGLE_SA_JSON"])
     creds = service_account.Credentials.from_service_account_info(
-        info, scopes=["https://www.googleapis.com/auth/calendar.events",
-                      "https://www.googleapis.com/auth/calendar.freebusy"])
+        info, scopes=["https://www.googleapis.com/auth/calendar"])
     svc = build("calendar", "v3", credentials=creds, cache_discovery=False)
     cal_id = os.environ.get("CALENDAR_ID")
     if not cal_id:
         return f"key valid; service account = {info.get('client_email')}; CALENDAR_ID not set yet"
+    own = info["client_email"]
     fb = svc.freebusy().query(body={"timeMin": "2026-12-01T00:00:00Z", "timeMax": "2026-12-02T00:00:00Z",
-                                    "items": [{"id": cal_id}]}).execute()
-    errs = fb["calendars"][cal_id].get("errors")
-    if errs:
-        raise RuntimeError(f"calendar not shared with {info.get('client_email')}: {errs}")
-    return "calendar reachable"
+                                    "items": [{"id": cal_id}, {"id": own}]}).execute()
+    for cid in (cal_id, own):
+        errs = fb["calendars"].get(cid, {}).get("errors")
+        if errs:
+            raise RuntimeError(f"calendar {cid} not readable by {own}: {errs}")
+    return "roofer calendar (free/busy) + agent bookings calendar both readable"
 
 
 for n, f in [("twilio", twilio), ("deepgram", deepgram), ("anthropic", anthropic), ("fish", fish), ("google", google)]:
