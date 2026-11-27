@@ -39,6 +39,15 @@ class Humanizer:
         return f + rest
 
 
+DIRECTION_NIGHT = ("[quiet, calm, low-key late-night tone, unhurried and a little soft, small natural pauses, "
+                   "like a real receptionist taking a call after hours, not cheerful]")
+
+
+def direction_for(hour: int) -> str:
+    """Same person, slightly different energy late at night (9 PM-7 AM)."""
+    return DIRECTION_NIGHT if hour >= 21 or hour < 7 else DIRECTION_SLOW
+
+
 def add_pauses(line: str, rng: random.Random, chance: float = 0.5) -> str:
     """Put a [short pause] after the first clause of longer lines (not read-backs)."""
     if _NO_FILLER.search(line) or len(line) < 50 or rng.random() > chance:

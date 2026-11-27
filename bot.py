@@ -42,7 +42,7 @@ from pipecat.workers.runner import WorkerRunner
 
 from agent import voices
 from agent.calendar_backend import FakeCalendar, GoogleCalendar
-from agent.humanize import DIRECTION_SLOW, Humanizer, add_pauses, direct
+from agent.humanize import Humanizer, add_pauses, direct, direction_for
 from agent.config import load_config
 from agent.messaging import Twilio
 from agent.prompt import greeting, system_prompt
@@ -129,7 +129,8 @@ async def run_bot(transport, runner_args: RunnerArguments, call_sid: str, caller
         sentence_no["n"] += 1
         out = hz.add_fillers(text, first_line=sentence_no["n"] == 1)
         out = add_pauses(out, hz.rng)
-        return direct(out, DIRECTION_SLOW) if FISH_MODEL.startswith(("drama", "s2")) else out
+        tone = direction_for(datetime.now(cfg.tz).hour)
+        return direct(out, tone) if FISH_MODEL.startswith(("drama", "s2")) else out
 
     tts.add_text_transformer(humanize, "*")
 
