@@ -17,7 +17,7 @@ DIRECTION = "[calm and relaxed, natural everyday tone like a real receptionist, 
 DIRECTION_SLOW = ("[calm, relaxed, unhurried pace, slightly tentative, thinking as she talks with small natural "
                   "pauses, like a real receptionist on a slow afternoon, not cheerful or salesy]")
 _NO_FILLER = re.compile(r"\d|AM\b|PM\b|read (it|everything|that) back|you're all set", re.I)
-_STARTS_WITH_FILLER = re.compile(r"^(um|uh|so|okay|ok|let me|hmm)\b", re.I)
+_STARTS_WITH_FILLER = re.compile(r"^(um|uh|so|okay|ok|let me|hmm|oh|ah|sorry|yes|yeah|no)\b", re.I)
 
 
 class Humanizer:
