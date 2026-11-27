@@ -180,7 +180,7 @@ async def run_call(name: str, sc: dict) -> dict:
                 messages=[{"role": "user", "content": convo}])
             usage["in"] += r.usage.input_tokens
             usage["out"] += r.usage.output_tokens
-            yield r.content[0].text.strip()
+            yield next(b.text for b in r.content if b.type == "text").strip()
 
     async for line in caller_lines():
         if ended:
