@@ -8,6 +8,10 @@ on:
         description: "Also run live checks with secrets (keys, 20 scripted calls, Fish voice test). Costs cents."
         type: boolean
         default: false
+      e2e:
+        description: "End-to-end bot test with a fake phone call (real Deepgram, Haiku, Fish)"
+        type: boolean
+        default: false
       voices:
         description: "Run the voice batch (simulated Capstone call rendered in each voice)"
         type: boolean
@@ -30,7 +34,7 @@ jobs:
       - run: uv run --with pytest pytest -q
 
   live:
-    if: github.event_name == 'workflow_dispatch' && (inputs.live || inputs.share_bookings || inputs.voices)
+    if: github.event_name == 'workflow_dispatch' && (inputs.live || inputs.share_bookings || inputs.voices || inputs.e2e)
     needs: unit
     runs-on: ubuntu-latest
     env:
@@ -71,6 +75,10 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
           uv run python scripts/voice_batch.py
         continue-on-error: true
+      - name: End-to-end bot test (fake phone call)
+        if: inputs.e2e
+        run: bash scripts/e2e_smoke.sh
+        continue-on-error: true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -78,4 +86,5 @@ jobs:
           path: |
             eval_results.json
             samples/
+            e2e/
           if-no-files-found: ignore

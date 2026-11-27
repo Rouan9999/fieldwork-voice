@@ -75,5 +75,6 @@
   },
   "recording_enabled": false,
   "max_call_minutes": 10,
-  "ai_disclosure": "on_ask"
+  "ai_disclosure": "on_ask",
+  "voice": "catherine"
 }

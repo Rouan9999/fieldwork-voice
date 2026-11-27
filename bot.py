@@ -40,7 +40,9 @@ from pipecat.services.llm_service import FunctionCallParams
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams
 from pipecat.workers.runner import WorkerRunner
 
+from agent import voices
 from agent.calendar_backend import FakeCalendar, GoogleCalendar
+from agent.humanize import DIRECTION_SLOW, Humanizer, add_pauses, direct
 from agent.config import load_config
 from agent.messaging import Twilio
 from agent.prompt import greeting, system_prompt
@@ -50,8 +52,9 @@ from agent.tools import SCHEMAS, AgentTools, CallState
 load_dotenv(override=True)
 
 # Voice defaults. FISH_VOICE_ID = a Fish voice model id (pick in the Fish app).
-FISH_MODEL = os.getenv("FISH_MODEL", "s2.1-pro")        # or "drama-3" for the A/B test
-FISH_SPEED = float(os.getenv("FISH_SPEED", "0.95"))      # Rouan: not too fast
+# Locked Nov 26: Drama 3 at 0.95 with the calm direction + fillers (agent/voices.py, agent/humanize.py).
+FISH_MODEL = os.getenv("FISH_MODEL", voices.MODEL)
+FISH_SPEED = float(os.getenv("FISH_SPEED", str(voices.SPEED)))
 LLM_MODEL = os.getenv("LLM_MODEL", "claude-haiku-5-5")
 
 
@@ -112,11 +115,23 @@ async def run_bot(transport, runner_args: RunnerArguments, call_sid: str, caller
         api_key=os.environ["FISH_API_KEY"],
         settings=FishAudioTTSService.Settings(
             model=FISH_MODEL,
-            voice=os.getenv("FISH_VOICE_ID", "e3cd384158934cc9a01029cd7d278634"),  # Laura (Fish Official)
+            voice=os.getenv("FISH_VOICE_ID") or voices.voice_id(cfg.voice),
             latency="balanced",
             prosody_speed=FISH_SPEED,
         ),
     )
+
+    # Before each sentence goes to Fish: light filler, short pause, calm direction.
+    hz = Humanizer(every=3)
+    sentence_no = {"n": 0}
+
+    async def humanize(text: str, _text_type) -> str:
+        sentence_no["n"] += 1
+        out = hz.add_fillers(text, first_line=sentence_no["n"] == 1)
+        out = add_pauses(out, hz.rng)
+        return direct(out, DIRECTION_SLOW) if FISH_MODEL.startswith(("drama", "s2")) else out
+
+    tts.add_text_transformer(humanize, "*")
 
     # Register tools -------------------------------------------------------
     async def _wrap(fn, params: FunctionCallParams):

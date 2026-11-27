@@ -43,6 +43,7 @@ async def main(url, wav=None, seconds=20):
         t0 = time.monotonic()
         first_audio = None
         got = 0
+        bot_mu = bytearray()
 
         async def reader():
             nonlocal first_audio, got
@@ -50,6 +51,7 @@ async def main(url, wav=None, seconds=20):
                 msg = json.loads(raw)
                 if msg.get("event") == "media":
                     got += 1
+                    bot_mu.extend(base64.b64decode(msg["media"]["payload"]))
                     if first_audio is None:
                         first_audio = time.monotonic() - t0
                         print(f"first bot audio after {first_audio:.3f}s")
@@ -65,6 +67,12 @@ async def main(url, wav=None, seconds=20):
         await asyncio.sleep(1)
         rd.cancel()
         print(f"bot audio frames received: {got}")
+        import os
+        if os.path.isdir("e2e") and bot_mu:
+            pcm = audioop.ulaw2lin(bytes(bot_mu), 2)
+            with wave.open("e2e/bot_audio.wav", "wb") as w:
+                w.setnchannels(1); w.setsampwidth(2); w.setframerate(8000); w.writeframes(pcm)
+            print(f"saved e2e/bot_audio.wav ({len(pcm) / 16000:.1f} s of bot speech)")
 
 
 if __name__ == "__main__":

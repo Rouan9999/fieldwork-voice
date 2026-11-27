@@ -39,15 +39,10 @@ from agent.humanize import DIRECTION_SLOW, Humanizer, add_pauses, direct, strip_
 # name -> provider, model, voice, fish direction prefix?, $ per 1M bytes (list price; measured below for Fish)
 # name -> provider, model, voice, direction, speed, pause cues?, $ per 1M bytes (list)
 # Fish community voices: uploader-owned, rights unclear -> testing only.
-VOICES = {
-    "drama3_catherine_095": ("fish", "drama-3", CATHERINE, "slow", 0.95, True, 10.0),
-    "drama3_midage_dry_095": ("fish", "drama-3", "74f60baf6e034967a2cf5c7c1f3d4a46", "slow", 0.95, True, 10.0),
-    "drama3_midwest_30s_095": ("fish", "drama-3", "7e4ff9c6e1334e13b30fd6afeb6c37ef", "slow", 0.95, True, 10.0),
-    "drama3_receptionist_095": ("fish", "drama-3", "31510937b9264db18c782953e75ef660", "slow", 0.95, True, 10.0),
-    "deepgram_vesta": ("deepgram", "aura-2-vesta-en", None, None, None, False, 30.0),
-    "deepgram_helena": ("deepgram", "aura-2-helena-en", None, None, None, False, 30.0),
-    "deepgram_andromeda": ("deepgram", "aura-2-andromeda-en", None, None, None, False, 30.0),
-}
+from agent import voices as _v  # noqa: E402
+
+VOICES = {f"drama3_{name}_095": ("fish", _v.MODEL, vid, "slow", _v.SPEED, True, 10.0)
+          for name, vid in _v.PRESETS.items()}
 CALLER_VOICE = "aura-2-arcas-en"
 CALLER_VOICE_IF_AGENT_IS_ARCAS = "aura-2-apollo-en"
 

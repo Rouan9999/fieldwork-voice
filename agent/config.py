@@ -33,6 +33,7 @@ class ClientConfig:
     twilio_number: str = ""
     escalation: dict = field(default_factory=dict)
     recording_enabled: bool = False
+    voice: str = "catherine"  # preset name from agent/voices.py
     ai_disclosure: str = "greeting"  # "greeting" = say it up front; "on_ask" = only when asked (never deny)
     max_call_minutes: int = 10
 

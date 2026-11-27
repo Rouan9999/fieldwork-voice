@@ -3,12 +3,30 @@
   "business_name": "Capstone Roofing",
   "timezone": "America/Chicago",
   "hours": {
-    "mon": ["08:00", "17:00"],
-    "tue": ["08:00", "17:00"],
-    "wed": ["08:00", "17:00"],
-    "thu": ["08:00", "17:00"],
-    "fri": ["08:00", "17:00"],
-    "sat": ["09:00", "13:00"],
+    "mon": [
+      "08:00",
+      "17:00"
+    ],
+    "tue": [
+      "08:00",
+      "17:00"
+    ],
+    "wed": [
+      "08:00",
+      "17:00"
+    ],
+    "thu": [
+      "08:00",
+      "17:00"
+    ],
+    "fri": [
+      "08:00",
+      "17:00"
+    ],
+    "sat": [
+      "09:00",
+      "13:00"
+    ],
     "sun": null
   },
   "services": [
@@ -22,10 +40,22 @@
   ],
   "service_area": "Birmingham and nearby: Hoover, Homewood, Mountain Brook, Vestavia Hills, Trussville, Pelham, Alabaster, Bessemer, Gardendale, Tuscaloosa",
   "faq": [
-    {"q": "Are inspections free?", "a": "Yes, the inspection and estimate are free, no obligation."},
-    {"q": "Do you help with insurance?", "a": "Yes, the team can look at storm damage and walk you through the claim process at the inspection."},
-    {"q": "Do you offer financing?", "a": "Financing options exist; the team goes over details at the inspection."},
-    {"q": "How long have you been in business?", "a": "Serving Birmingham since 2013, family owned."}
+    {
+      "q": "Are inspections free?",
+      "a": "Yes, the inspection and estimate are free, no obligation."
+    },
+    {
+      "q": "Do you help with insurance?",
+      "a": "Yes, the team can look at storm damage and walk you through the claim process at the inspection."
+    },
+    {
+      "q": "Do you offer financing?",
+      "a": "Financing options exist; the team goes over details at the inspection."
+    },
+    {
+      "q": "How long have you been in business?",
+      "a": "Serving Birmingham since 2013, family owned."
+    }
   ],
   "inspection_minutes": 60,
   "buffer_minutes": 30,
@@ -37,9 +67,14 @@
   "owner_email": "",
   "calendar_id": "REPLACE",
   "twilio_number": "+1XXXXXXXXXX",
-  "escalation": {"transfer_on_emergency": true, "transfer_on_request": true, "transfer_on_upset": true},
+  "escalation": {
+    "transfer_on_emergency": true,
+    "transfer_on_request": true,
+    "transfer_on_upset": true
+  },
   "recording_enabled": false,
   "ai_disclosure": "on_ask",
   "max_call_minutes": 10,
-  "_note": "DEMO ONLY for the Tony pitch. Facts from public pages (doc 25); hours are a placeholder. Not live, not approved by Capstone."
+  "_note": "DEMO ONLY for the Tony pitch. Facts from public pages (doc 25); hours are a placeholder. Not live, not approved by Capstone.",
+  "voice": "catherine"
 }
