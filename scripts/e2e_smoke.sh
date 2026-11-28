@@ -32,4 +32,4 @@ uv run --with audioop-lts --with websockets python scripts/fake_twilio_call.py w
 sleep 3
 kill $BOT 2>/dev/null; sleep 2
 echo "---- bot log highlights ----"
-grep -E "LATENCY|TOOL|CALL_REPORT|Traceback|ERROR" e2e/bot.log | cut -c1-400 | head -40
+grep -E "LATENCY|TOOL|CALL_REPORT|Traceback|ERROR|STARTUP|GREETING_DONE|still there" e2e/bot.log | cut -c1-400 | head -40
