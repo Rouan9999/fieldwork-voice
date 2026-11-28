@@ -20,6 +20,7 @@ from pipecat.adapters.llm.schemas.function_schema import FunctionSchema
 from pipecat.adapters.llm.schemas.tools_schema import ToolsSchema
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.frames.frames import EndWorkerFrame, MetricsFrame, TTSSpeakFrame
+from pipecat.turns.user_mute import MuteUntilFirstBotCompleteUserMuteStrategy
 from pipecat.metrics.metrics import LLMUsageMetricsData, TTSUsageMetricsData
 from pipecat.observers.base_observer import BaseObserver, FramePushed
 from pipecat.observers.user_bot_latency_observer import UserBotLatencyObserver
@@ -137,7 +138,7 @@ async def run_bot(transport, runner_args: RunnerArguments, call_sid: str, caller
     )
 
     # Before each sentence goes to Fish: light filler, short pause, calm direction.
-    hz = Humanizer(every=3)
+    hz = Humanizer(every=5)
     sentence_no = {"n": 0}
 
     async def humanize(text: str, _text_type) -> str:
@@ -190,7 +191,11 @@ async def run_bot(transport, runner_args: RunnerArguments, call_sid: str, caller
 
     user_agg, assistant_agg = LLMContextAggregatorPair(
         context,
-        user_params=LLMUserAggregatorParams(vad_analyzer=SileroVADAnalyzer(), user_idle_timeout=8),
+        user_params=LLMUserAggregatorParams(
+            vad_analyzer=SileroVADAnalyzer(), user_idle_timeout=8,
+            # caller can't cut off the greeting; after it, barge-in works as normal
+            user_mute_strategies=[MuteUntilFirstBotCompleteUserMuteStrategy()],
+        ),
     )
 
     pipeline = Pipeline([

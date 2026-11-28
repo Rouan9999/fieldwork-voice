@@ -12,10 +12,9 @@ from __future__ import annotations
 import random
 import re
 
-FILLERS = ["Um, ", "Uh, ", "Okay, um, ", "So, um, ", "Let me see [short pause] "]
+FILLERS = ["Okay, ", "So, ", "Um, ", "Alright, "]
 DIRECTION = "[calm and relaxed, natural everyday tone like a real receptionist, not cheerful or salesy]"
-DIRECTION_SLOW = ("[calm, relaxed, unhurried pace, slightly tentative, thinking as she talks with small natural "
-                  "pauses, like a real receptionist on a slow afternoon, not cheerful or salesy]")
+DIRECTION_SLOW = "[warm, friendly, confident receptionist, smiling, natural pace]"
 _NO_FILLER = re.compile(r"\d|AM\b|PM\b|read (it|everything|that) back|you're all set", re.I)
 _STARTS_WITH_FILLER = re.compile(r"^(um|uh|so|okay|ok|let me|hmm|oh|ah|sorry|yes|yeah|no)\b", re.I)
 
@@ -39,8 +38,7 @@ class Humanizer:
         return f + rest
 
 
-DIRECTION_NIGHT = ("[quiet, calm, low-key late-night tone, unhurried and a little soft, small natural pauses, "
-                   "like a real receptionist taking a call after hours, not cheerful]")
+DIRECTION_NIGHT = "[warm, friendly, confident receptionist, a little softer, natural pace]"
 
 
 def direction_for(hour: int) -> str:

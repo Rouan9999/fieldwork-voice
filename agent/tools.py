@@ -9,6 +9,7 @@ Guard rails live HERE, not only in the prompt:
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
@@ -151,6 +152,10 @@ class AgentTools:
         b = self.st.booking
         if not b:
             return {"ok": False, "error": "nothing booked yet"}
+        if os.getenv("SMS_ENABLED", "0") != "1":
+            # US carriers silently drop texts from numbers without A2P 10DLC registration.
+            return {"ok": True, "sent": False,
+                    "note": "Texting is not set up. Say the team will confirm with them. Do not say a text was sent."}
         start = datetime.fromisoformat(b["start"])
         end = datetime.fromisoformat(b["end"])
         link = calendar_link(f"Roof inspection - {self.cfg.business_name}", start, end,
@@ -168,7 +173,7 @@ class AgentTools:
             self.st.errors.append(f"sms: {e}")
             return {"ok": False, "error": "text failed; tell the caller the office will text them"}
         self.st.texts_sent.append(sid)
-        return {"ok": True}
+        return {"ok": True, "sent": True}
 
     # 4 ---------------------------------------------------------------
     async def take_message(self, name: str, phone: str, reason: str, urgency: str = "normal") -> dict:

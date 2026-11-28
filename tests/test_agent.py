@@ -1,3 +1,4 @@
+import os
 import asyncio
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -114,7 +115,9 @@ def test_full_booking_flow_and_no_double_booking(monkeypatch):
     ok = run(t.book(sid, "Jane Doe", "205-555-0100", "1 Main St, Tuscaloosa", "leak", True, True))
     assert ok["ok"], ok
     assert len(cal.events) == 1 and cal.events[0]["location"] == "1 Main St, Tuscaloosa"
-    assert run(t.send_confirmation_text())["ok"]
+    os.environ["SMS_ENABLED"] = "1"
+    assert run(t.send_confirmation_text())["sent"]
+    os.environ.pop("SMS_ENABLED")
     to, body = tw.sent[0]
     assert to == "+12055550100" and "calendar.google.com" in body and "STOP" in body
     # second caller cannot get the same time
@@ -140,7 +143,9 @@ def test_test_mode_blocks_unknown_numbers(monkeypatch):
     t, cal, st = make(NOW, caller="+19999999999")
     run(t.check_slots())
     assert run(t.book("A", "X", "999-999-9999", "1 Main", "leak", False, True))["ok"]
+    os.environ["SMS_ENABLED"] = "1"
     res = run(t.send_confirmation_text())
+    os.environ.pop("SMS_ENABLED")
     assert not res["ok"] and "TEST_MODE" in res["error"] or "blocked" in res["error"]
 
 
@@ -257,3 +262,13 @@ def test_parse_sa_json_formats():
             assert False
         except ValueError as e:
             assert "BEGIN" not in str(e)
+
+
+def test_sms_off_never_claims_sent(monkeypatch):
+    monkeypatch.delenv("SMS_ENABLED", raising=False)
+    tw = FakeTwilio()
+    t, cal, st = make(NOW, tw=tw)
+    sid = run(t.check_slots())["slots"][0]["slot_id"]
+    assert run(t.book(sid, "Jane Doe", "205-555-0100", "1 Main St, Tuscaloosa", "leak", True, True))["ok"]
+    res = run(t.send_confirmation_text())
+    assert res["sent"] is False and not tw.sent

@@ -1,5 +1,5 @@
-"""Voice presets. LOCKED by Rouan (Nov 27, 2026): Fish Drama 3, speed 0.95,
-calm/unhurried direction, code-added fillers and short pauses.
+"""Voice presets. Rouan (Nov 28, 2026): Fish Drama 3, speed 1.0 (was 0.95: too slow),
+warm/confident direction (was calm/tentative: sounded unsure), light fillers.
 
 Top 3 (each roofer picks one):
   catherine      https://fish.audio/app/m/7fe8fcea5c3d4fbb9d153493a1e8be0e/
@@ -13,7 +13,7 @@ tests and demos. Before a paying client goes live, use a voice we have rights to
 """
 
 MODEL = "drama-3"
-SPEED = 0.95
+SPEED = 1.0
 
 PRESETS = {
     "catherine": "7fe8fcea5c3d4fbb9d153493a1e8be0e",       # "Kthy": calm, professional, slightly muffled
