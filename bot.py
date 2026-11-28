@@ -24,7 +24,7 @@ from pipecat.frames.frames import EndWorkerFrame, MetricsFrame, TTSSpeakFrame
 from pipecat.turns.user_mute import MuteUntilFirstBotCompleteUserMuteStrategy
 from pipecat.turns.user_start import MinWordsUserTurnStartStrategy
 from pipecat.turns.user_turn_strategies import UserTurnStrategies
-from pipecat.frames.frames import OutputAudioRawFrame
+from pipecat.frames.frames import BotStoppedSpeakingFrame, OutputAudioRawFrame
 from agent.pickup import pickup_sound
 from pipecat.metrics.metrics import LLMUsageMetricsData, TTSUsageMetricsData
 from pipecat.observers.base_observer import BaseObserver, FramePushed
@@ -232,8 +232,14 @@ async def run_bot(transport, runner_args: RunnerArguments, call_sid: str, caller
 
     idle_count = {"n": 0}
 
+    greeted = {"done": False, "at": 0.0}
+
     @user_agg.event_handler("on_user_turn_idle")
     async def _idle(_agg):
+        # Don't ask "are you still there?" before the caller has had a fair chance to
+        # answer the greeting (cold starts made this fire right after "hello").
+        if not greeted["done"] or time.monotonic() - greeted["at"] < 8:
+            return
         idle_count["n"] += 1
         if idle_count["n"] == 1:
             await worker.queue_frames([TTSSpeakFrame("Are you still there?")])
@@ -248,6 +254,17 @@ async def run_bot(transport, runner_args: RunnerArguments, call_sid: str, caller
         idle_count["n"] = 0
 
     runner = WorkerRunner(handle_sigint=runner_args.handle_sigint, force_gc=True)
+
+    worker.add_reached_upstream_filter((BotStoppedSpeakingFrame,))
+    worker.add_reached_downstream_filter((BotStoppedSpeakingFrame,))
+
+    async def _greeting_done(_w, frame):
+        if not greeted["done"] and isinstance(frame, BotStoppedSpeakingFrame):
+            greeted["done"], greeted["at"] = True, time.monotonic()
+            logger.info("GREETING_DONE (idle timer armed)")
+
+    worker.add_event_handler("on_frame_reached_upstream", _greeting_done)
+    worker.add_event_handler("on_frame_reached_downstream", _greeting_done)
 
     @transport.event_handler("on_client_connected")
     async def _connected(_t, _c):
