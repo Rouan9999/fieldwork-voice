@@ -18,8 +18,13 @@ creds = service_account.Credentials.from_service_account_info(
 svc = build("calendar", "v3", credentials=creds, cache_discovery=False)
 owner = os.environ["OWNER_EMAIL"]
 rule = {"role": "reader", "scope": {"type": "user", "value": owner}}
-res = svc.acl().insert(calendarId=info["client_email"], body=rule, sendNotifications=True).execute()
-print(f"shared bookings calendar {info['client_email']} with {owner} as {res['role']}")
+try:
+    res = svc.acl().insert(calendarId=info["client_email"], body=rule, sendNotifications=True).execute()
+    print(f"shared bookings calendar with {owner} as {res['role']}")
+except Exception as e:
+    print(f"share step failed: {str(e)[-160:]}")
+for r in svc.acl().list(calendarId=info["client_email"]).execute().get("items", []):
+    print("acl:", r["role"], r["scope"].get("type"), r["scope"].get("value", ""))
 
 # Proof the agent's bookings landed: list upcoming events on the bookings calendar.
 from datetime import datetime, timezone
