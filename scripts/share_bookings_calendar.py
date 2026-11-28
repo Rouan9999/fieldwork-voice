@@ -20,3 +20,11 @@ owner = os.environ["OWNER_EMAIL"]
 rule = {"role": "reader", "scope": {"type": "user", "value": owner}}
 res = svc.acl().insert(calendarId=info["client_email"], body=rule, sendNotifications=True).execute()
 print(f"shared bookings calendar {info['client_email']} with {owner} as {res['role']}")
+
+# Proof the agent's bookings landed: list upcoming events on the bookings calendar.
+from datetime import datetime, timezone
+items = svc.events().list(calendarId=info["client_email"], timeMin=datetime.now(timezone.utc).isoformat(),
+                          singleEvents=True, orderBy="startTime", maxResults=10).execute().get("items", [])
+print(f"upcoming bookings: {len(items)}")
+for e in items:
+    print(" -", e["start"].get("dateTime", e["start"].get("date")), "|", e.get("summary", ""))

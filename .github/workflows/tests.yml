@@ -53,6 +53,8 @@ jobs:
       - name: Share bookings calendar with the owner
         if: inputs.share_bookings
         run: uv run python scripts/share_bookings_calendar.py
+        env:
+          OWNER_EMAIL: ${{ vars.OWNER_EMAIL || 'rouan@fieldworkmedia.agency' }}
         continue-on-error: true
       - name: Check keys (prints OK/FAIL only, never the keys)
         run: uv run --with requests python scripts/check_keys.py
