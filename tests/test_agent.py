@@ -184,7 +184,7 @@ def test_calendar_down_returns_message_path():
 def test_prompt_has_disclosure_rules_and_dates():
     p = system_prompt(CFG, NOW, "+12055550100")
     assert "2026-11-26" in p and "Never quote prices" in p and "AI assistant" in p
-    assert "Never claim or imply you are human" in p and "Privacy" in p
+    assert "Never claim or imply you're human" in p and "Privacy" in p
     assert CFG.business_name in greeting(CFG) and "automated" not in greeting(CFG)  # on_ask
     from dataclasses import replace
     assert "automated assistant" in greeting(replace(CFG, ai_disclosure="greeting"))
@@ -282,3 +282,13 @@ def test_pickup_sound_is_short_and_quiet():
     import struct
     peak = max(abs(v) for (v,) in struct.iter_unpack("<h", pcm))
     assert peak < 32767 * 0.5
+
+
+def test_named_greeting_and_ai_rule():
+    from dataclasses import replace
+    from agent.prompt import greeting, system_prompt
+    cfg = replace(CFG, agent_name="Catherine", ai_disclosure="on_ask")
+    g = greeting(cfg)
+    assert "this is Catherine" in g and "AI" not in g and "automated" not in g
+    p = system_prompt(cfg, NOW)
+    assert "Your name is Catherine" in p and "never bring up on your own" in p and "Never claim or imply you're human" in p

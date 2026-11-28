@@ -80,5 +80,6 @@
   "ai_disclosure": "on_ask",
   "max_call_minutes": 10,
   "_note": "DEMO ONLY for the Tony pitch. Facts from public pages (doc 25). Hours from Angi listing (Mon-Fri 7-6, Sat 10-3); Google lists 24 hours. Confirm with Tony. Not live, not approved by Capstone.",
-  "voice": "relaxed_young"
+  "voice": "catherine",
+  "agent_name": "Catherine"
 }

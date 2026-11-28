@@ -19,6 +19,7 @@ from loguru import logger
 from pipecat.adapters.llm.schemas.function_schema import FunctionSchema
 from pipecat.adapters.llm.schemas.tools_schema import ToolsSchema
 from pipecat.audio.vad.silero import SileroVADAnalyzer
+from pipecat.audio.vad.vad_analyzer import VADParams
 from pipecat.frames.frames import EndWorkerFrame, MetricsFrame, TTSSpeakFrame
 from pipecat.turns.user_mute import MuteUntilFirstBotCompleteUserMuteStrategy
 from pipecat.turns.user_start import MinWordsUserTurnStartStrategy
@@ -196,7 +197,8 @@ async def run_bot(transport, runner_args: RunnerArguments, call_sid: str, caller
     user_agg, assistant_agg = LLMContextAggregatorPair(
         context,
         user_params=LLMUserAggregatorParams(
-            vad_analyzer=SileroVADAnalyzer(), user_idle_timeout=8,
+            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=float(os.getenv("VAD_STOP_SECS", "0.4")))),
+            user_idle_timeout=8,
             # caller can't cut off the greeting; after it, barge-in works as normal
             user_mute_strategies=[MuteUntilFirstBotCompleteUserMuteStrategy()],
             # Like a person: "yeah", "okay", "mm-hm" while she talks don't stop her;
