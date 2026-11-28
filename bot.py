@@ -41,7 +41,7 @@ from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams
 from pipecat.workers.runner import WorkerRunner
 
 from agent import voices
-from agent.calendar_backend import FakeCalendar, GoogleCalendar
+from agent.calendar_backend import FakeCalendar, GoogleCalendar, UnavailableCalendar, sa_json_shape
 from agent.humanize import Humanizer, add_pauses, direct, direction_for
 from agent.config import load_config
 from agent.messaging import Twilio
@@ -84,10 +84,25 @@ def make_calendar(cfg):
     if os.getenv("CALENDAR_BACKEND", "google") == "fake":
         logger.warning("Using FakeCalendar (no real bookings)")
         return FakeCalendar()
-    return GoogleCalendar(cfg.calendar_id)
+    try:
+        return GoogleCalendar(cfg.calendar_id)
+    except Exception as e:  # never let a calendar problem kill the call
+        logger.exception(f"calendar init failed; continuing without booking: {e}")
+        return UnavailableCalendar(str(e))
+
+
+REQUIRED_ENV = ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "DEEPGRAM_API_KEY", "FISH_API_KEY",
+                "ANTHROPIC_API_KEY", "GOOGLE_SA_JSON", "CLIENT_CONFIG", "CALENDAR_ID"]
+
+
+def log_env_check():
+    """Names and shapes only, never values."""
+    present = {k: bool(os.getenv(k, "").strip()) for k in REQUIRED_ENV}
+    logger.info(f"ENV_CHECK present={present} GOOGLE_SA_JSON[{sa_json_shape(os.getenv('GOOGLE_SA_JSON', ''))}]")
 
 
 async def run_bot(transport, runner_args: RunnerArguments, call_sid: str, caller: str):
+    log_env_check()
     cfg = load_config()
     started = time.monotonic()
     metrics = CallMetrics()
@@ -266,7 +281,11 @@ async def bot(runner_args: RunnerArguments):
     # Twilio Media Streams do not send the caller's number by default; the
     # TwiML passes it as <Parameter name="from" value="{{From}}"/>.
     caller = ((call.body or {}).get("from") if call else "") or (call.from_number if call else "") or ""
-    await run_bot(transport, runner_args, call_sid, caller)
+    try:
+        await run_bot(transport, runner_args, call_sid, caller)
+    except Exception:
+        logger.exception("run_bot crashed")  # full traceback in Pipecat logs
+        raise
 
 
 if __name__ == "__main__":

@@ -38,6 +38,59 @@ class FakeCalendar:
         return {"id": ev["id"], "link": ""}
 
 
+def sa_json_shape(raw: str) -> str:
+    """Describe GOOGLE_SA_JSON without revealing it (length, first char, line count)."""
+    raw = raw or ""
+    t = raw.strip()
+    first = t[:1]
+    kind = "brace" if first == "{" else "quote" if first in "'\"" else "empty" if not first else "other"
+    return f"len={len(raw)} first={kind} lines={raw.count(chr(10)) + 1 if raw else 0}"
+
+
+def parse_sa_json(raw: str) -> dict:
+    """Parse a service-account key pasted into a secret store.
+    Accepts: raw JSON (one or many lines), JSON wrapped in quotes, or base64 of the JSON.
+    Raises ValueError that names only the shape, never the content."""
+    t = (raw or "").strip()
+    candidates = [t]
+    if len(t) >= 2 and t[0] == t[-1] and t[0] in "'\"":
+        t = t[1:-1].strip()
+        candidates.append(t)
+    if t and not t.startswith("{"):
+        try:
+            import base64
+            candidates.append(base64.b64decode(t + "=" * (-len(t) % 4)).decode("utf-8").strip())
+        except Exception:
+            pass
+    for c in candidates:
+        try:
+            info = json.loads(c, strict=False)  # strict=False: tolerate real newlines inside private_key
+        except ValueError:
+            continue
+        if isinstance(info, str):  # double-encoded JSON
+            try:
+                info = json.loads(info, strict=False)
+            except ValueError:
+                continue
+        if isinstance(info, dict) and info.get("client_email") and info.get("private_key"):
+            return info
+    raise ValueError(f"GOOGLE_SA_JSON is not a usable service-account key ({sa_json_shape(raw)})")
+
+
+class UnavailableCalendar:
+    """Used when the real calendar cannot start. The call still goes on:
+    tools fail softly and the agent takes a message instead of booking."""
+
+    def __init__(self, reason: str):
+        self.reason = reason
+
+    async def busy(self, start, end):
+        raise RuntimeError(f"calendar unavailable: {self.reason}")
+
+    async def create_event(self, *a, **k):
+        raise RuntimeError(f"calendar unavailable: {self.reason}")
+
+
 class GoogleCalendar:
     """Two calendars per client:
     - roofer calendar (calendar_id): shared with the service account as
@@ -54,7 +107,7 @@ class GoogleCalendar:
         from google.oauth2 import service_account
         from googleapiclient.discovery import build
 
-        info = json.loads(sa_json or os.environ["GOOGLE_SA_JSON"])
+        info = parse_sa_json(sa_json or os.environ.get("GOOGLE_SA_JSON", ""))
         creds = service_account.Credentials.from_service_account_info(info, scopes=self.SCOPES)
         self._svc = build("calendar", "v3", credentials=creds, cache_discovery=False)
         self.calendar_id = calendar_id

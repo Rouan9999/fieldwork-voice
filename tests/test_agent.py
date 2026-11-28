@@ -237,3 +237,23 @@ def test_humanizer_skips_readbacks_and_greeting():
     out = h.add_fillers("What's the address?")
     assert out != "What's the address?"
     assert strip_cues("Let me see [short pause] okay") == "Let me see okay"
+
+
+def test_parse_sa_json_formats():
+    import base64, json as _j
+    from agent.calendar_backend import parse_sa_json
+    key = {"type": "service_account", "client_email": "a@b.iam.gserviceaccount.com",
+           "private_key": "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n"}
+    raw = _j.dumps(key)
+    assert parse_sa_json(raw)["client_email"] == key["client_email"]
+    assert parse_sa_json(_j.dumps(key, indent=2))["client_email"]           # multi-line paste
+    assert parse_sa_json("'" + raw + "'")["client_email"]                    # wrapped in quotes
+    assert parse_sa_json(base64.b64encode(raw.encode()).decode())["client_email"]  # base64
+    assert parse_sa_json(raw.replace("\\n", "\n"))["client_email"]          # real newlines in key
+    assert parse_sa_json(_j.dumps(raw))["client_email"]                      # double-encoded
+    for bad in ["", "   ", "not json", "{}"]:
+        try:
+            parse_sa_json(bad)
+            assert False
+        except ValueError as e:
+            assert "BEGIN" not in str(e)
