@@ -272,3 +272,13 @@ def test_sms_off_never_claims_sent(monkeypatch):
     assert run(t.book(sid, "Jane Doe", "205-555-0100", "1 Main St, Tuscaloosa", "leak", True, True))["ok"]
     res = run(t.send_confirmation_text())
     assert res["sent"] is False and not tw.sent
+
+
+def test_pickup_sound_is_short_and_quiet():
+    from agent.pickup import pickup_sound
+    pcm, sr = pickup_sound()
+    secs = len(pcm) / 2 / sr
+    assert 0.2 < secs < 0.5
+    import struct
+    peak = max(abs(v) for (v,) in struct.iter_unpack("<h", pcm))
+    assert peak < 32767 * 0.5

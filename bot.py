@@ -21,6 +21,10 @@ from pipecat.adapters.llm.schemas.tools_schema import ToolsSchema
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.frames.frames import EndWorkerFrame, MetricsFrame, TTSSpeakFrame
 from pipecat.turns.user_mute import MuteUntilFirstBotCompleteUserMuteStrategy
+from pipecat.turns.user_start import MinWordsUserTurnStartStrategy
+from pipecat.turns.user_turn_strategies import UserTurnStrategies
+from pipecat.frames.frames import OutputAudioRawFrame
+from agent.pickup import pickup_sound
 from pipecat.metrics.metrics import LLMUsageMetricsData, TTSUsageMetricsData
 from pipecat.observers.base_observer import BaseObserver, FramePushed
 from pipecat.observers.user_bot_latency_observer import UserBotLatencyObserver
@@ -195,6 +199,11 @@ async def run_bot(transport, runner_args: RunnerArguments, call_sid: str, caller
             vad_analyzer=SileroVADAnalyzer(), user_idle_timeout=8,
             # caller can't cut off the greeting; after it, barge-in works as normal
             user_mute_strategies=[MuteUntilFirstBotCompleteUserMuteStrategy()],
+            # Like a person: "yeah", "okay", "mm-hm" while she talks don't stop her;
+            # 3+ real words do. When she's not talking, 1 word starts the caller's turn.
+            user_turn_strategies=UserTurnStrategies(
+                start=[MinWordsUserTurnStartStrategy(min_words=int(os.getenv("INTERRUPT_MIN_WORDS", "3")))]
+            ),
         ),
     )
 
@@ -240,8 +249,11 @@ async def run_bot(transport, runner_args: RunnerArguments, call_sid: str, caller
 
     @transport.event_handler("on_client_connected")
     async def _connected(_t, _c):
-        # Fixed greeting = no LLM wait on pickup; includes AI disclosure.
-        await worker.queue_frames([TTSSpeakFrame(greeting(cfg))])
+        # Pickup click first (instant, no network), then the fixed greeting (no LLM wait).
+        pcm, sr = pickup_sound()
+        await worker.queue_frames([OutputAudioRawFrame(audio=pcm, sample_rate=sr, num_channels=1),
+                                   TTSSpeakFrame(greeting(cfg))])
+        logger.info(f"STARTUP bot() start -> greeting queued: {time.monotonic() - BOOT_T0['t']:.2f}s")
 
     @transport.event_handler("on_client_disconnected")
     async def _disconnected(_t, _c):
@@ -275,8 +287,12 @@ async def run_bot(transport, runner_args: RunnerArguments, call_sid: str, caller
                 logger.error(f"owner summary text failed: {e}")
 
 
+BOOT_T0 = {"t": time.monotonic()}
+
+
 async def bot(runner_args: RunnerArguments):
     """Pipecat Cloud / dev runner entry point."""
+    BOOT_T0["t"] = time.monotonic()
     transport = await create_transport(
         runner_args,
         {"twilio": lambda: FastAPIWebsocketParams(audio_in_enabled=True, audio_out_enabled=True)},
